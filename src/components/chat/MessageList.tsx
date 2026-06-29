@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { User, Bot, RotateCcw, Copy, Pencil, Trash2, Check, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -31,6 +31,7 @@ export function MessageList({ messages, streaming, className, onRetry, onEdit, o
   const endRef = useRef<HTMLDivElement>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const prevMsgIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -44,6 +45,32 @@ export function MessageList({ messages, streaming, className, onRetry, onEdit, o
     return -1
   })()
 
+  // Only animate messages that are newly appended during conversation,
+  // NOT messages batch-loaded on chapter switch.
+  const animatingMsgIds = useMemo(() => {
+    const prev = prevMsgIdsRef.current
+    if (prev.size === 0) return new Set<string>() // Initial load — show instantly
+
+    const newIds = new Set<string>()
+    let existingCount = 0
+    for (const msg of visibleMessages) {
+      if (prev.has(msg.id)) {
+        existingCount++
+      } else {
+        newIds.add(msg.id)
+      }
+    }
+
+    // If no previous messages remain, it's a chapter switch — show all instantly
+    if (existingCount === 0) return new Set<string>()
+
+    return newIds
+  }, [visibleMessages])
+
+  useEffect(() => {
+    prevMsgIdsRef.current = new Set(visibleMessages.map(m => m.id))
+  }, [visibleMessages])
+
   const handleCopy = async (content: string, msgId: string) => {
     await navigator.clipboard.writeText(content)
     setCopiedId(msgId)
@@ -53,23 +80,20 @@ export function MessageList({ messages, streaming, className, onRetry, onEdit, o
   return (
     <div className={cn('flex-1 overflow-y-auto px-4', className)}>
       <div className="max-w-3xl mx-auto py-4 space-y-6">
-        <AnimatePresence mode="popLayout">
           {visibleMessages.map((msg, idx) => {
             const isLastUser = msg.role === 'user' && idx === lastPairIdx
             const isUser = msg.role === 'user'
+            const shouldAnimate = animatingMsgIds.has(msg.id)
 
             return (
               <motion.div
                 key={msg.id}
-                layout
-                initial={{ opacity: 0, y: 15 }}
+                initial={shouldAnimate ? { opacity: 0, y: 15 } : false}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: -10 }}
                 transition={{
                   type: 'spring',
                   stiffness: 380,
-                  damping: 28,
-                  layout: { duration: 0.2 }
+                  damping: 28
                 }}
                 className="flex gap-3 group"
                 data-message-id={msg.id}
@@ -176,7 +200,6 @@ export function MessageList({ messages, streaming, className, onRetry, onEdit, o
               </motion.div>
             )
           })}
-        </AnimatePresence>
 
         <AnimatePresence>
           {(loading || streaming) && (
