@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mukyu AI
+
+一款不止于对话的学习用 AI 工具。
+
+---
+
+## 特点
+
+* 浮动查询：不打断主线学习的情况下快速了解陌生概念
+
+* 分块学习与树状上下文：AI划分章节，按章节分别学习。使用树状上下文架构，避免上下文冗长，同时减少 token 消耗
+
+* RAG 知识库：可自行导入学习资料供 AI 参考
+
+* 多供应商支持：兼容 OpenAI、Anthropic、Google Gemini 三家 API 格式。可同时配置多家供应商
+
+* 快速跳转时间线：直观的时间线导航，可一键跳转回之前的学习节点、提问记录或思维片段
+
+* 多模态支持：支持 PDF、Word、Excel 等格式的文档理解，自带文档解析；支持为无多模态的模型外挂图像理解模型
+
+* 动态上下文压缩
+
+* 丝滑的动画过渡和完善的公式渲染
+
+---
+
+## Tech Stack
+
+React, Next.js, Tailwind CSS, Motion, Electron
 
 ## Getting Started
 
-First, run the development server:
-
+### 1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
+### 2. Run the development server
+```bash
+npm run dev
+```
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run the Electron app
+```bash
+npm run electron:dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Build the desktop application
+```bash
+npm run electron:build
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+[MIT](LICENSE)
