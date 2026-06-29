@@ -7,6 +7,32 @@ let serverProcess = null;
 let mainWindow = null;
 const isDev = !app.isPackaged;
 
+// Helper to determine the database storage directory
+function getDatabaseDirectory() {
+  if (isDev) {
+    return path.join(app.getAppPath(), 'data');
+  }
+
+  const execDir = path.dirname(process.execPath);
+  const execDirLower = execDir.toLowerCase();
+  
+  // Standard installation paths
+  const isInstalled = 
+    execDirLower.includes('program files') || 
+    execDirLower.includes('appdata\\local\\programs') || 
+    execDirLower.includes('/applications') ||
+    execDirLower.startsWith('/usr/') ||
+    execDirLower.startsWith('/opt/');
+
+  if (isInstalled) {
+    // Installed version: save in AppData\Roaming
+    return path.join(app.getPath('userData'), 'data');
+  } else {
+    // Unpacked/Green version: save next to executable
+    return path.join(execDir, 'data');
+  }
+}
+
 // Helper to find an available port starting from a given port number
 function getFreePort(startPort) {
   return new Promise((resolve) => {
@@ -27,21 +53,17 @@ function getFreePort(startPort) {
 }
 
 async function startNextServer() {
+  const dataDir = getDatabaseDirectory();
+  process.env.MUKYU_DATA_DIR = dataDir;
+  process.env.MUKYU_WASM_DIR = path.join(app.getAppPath(), 'node_modules', 'sql.js', 'dist');
+
   if (isDev) {
     // In development mode, we expect Next.js dev server to be running on port 3000
-    process.env.MUKYU_DATA_DIR = path.join(app.getAppPath(), 'data');
-    process.env.MUKYU_WASM_DIR = path.join(app.getAppPath(), 'node_modules', 'sql.js', 'dist');
     return 'http://127.0.0.1:3000';
   }
 
   // In production (packaged) mode, we start the standalone Next.js server locally
   const port = await getFreePort(19024);
-  // electron-builder sets PORTABLE_EXECUTABLE_DIR to the directory containing the original .exe file
-  const appDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath);
-
-  // Set environment variables for portable mode next to the executable
-  process.env.MUKYU_DATA_DIR = path.join(appDir, 'data');
-  process.env.MUKYU_WASM_DIR = path.join(app.getAppPath(), 'node_modules', 'sql.js', 'dist');
   process.env.PORT = port.toString();
   process.env.HOSTNAME = '127.0.0.1';
   process.env.NODE_ENV = 'production';

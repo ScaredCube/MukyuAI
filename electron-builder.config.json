@@ -10,8 +10,15 @@
   ],
   "win": {
     "target": [
-      "portable"
+      "nsis"
     ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "MukyuAI"
   },
   "mac": {
     "target": [
