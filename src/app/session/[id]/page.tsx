@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useSettings } from '@/lib/settings-context'
 import { toast } from 'sonner'
 import type { Session, Chapter, Message, Attachment } from '@/lib/types'
+import { motion, AnimatePresence } from 'motion/react'
 
 function estimateTokens(text: string): number {
   if (!text) return 0
@@ -549,32 +550,42 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           onClick={() => setChapterHeaderCollapsed(!chapterHeaderCollapsed)}
           className="w-full flex items-center justify-between py-1 text-left hover:opacity-80 transition-opacity"
         >
-          <Target className="h-4 w-4 text-primary shrink-0" />
+          <Target className="h-4 w-4 text-primary shrink-0 mr-2" />
           <span className="font-semibold text-sm truncate flex-1">{activeChapter.title}</span>
-          {chapterHeaderCollapsed ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-          ) : (
-            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          )}
+          <motion.div
+            animate={{ rotate: chapterHeaderCollapsed ? 0 : 180 }}
+            transition={{ duration: 0.2 }}
+            className="shrink-0 ml-2"
+          >
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </motion.div>
         </button>
-        {!chapterHeaderCollapsed && (
-          <div className="space-y-2 pb-3">
-            {activeChapter.objectives && (
-              <div className="flex items-start gap-2 text-sm">
-                <span className="font-medium text-muted-foreground shrink-0">目标：</span>
-                <span>{activeChapter.objectives}</span>
-              </div>
-            )}
-            {activeChapter.outline && (
-              <div className="flex items-start gap-2 text-sm">
-                <List className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="text-muted-foreground">
-                  <MarkdownRenderer content={activeChapter.outline} />
+        <AnimatePresence initial={false}>
+          {!chapterHeaderCollapsed && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="overflow-hidden space-y-2 pb-3 mt-1"
+            >
+              {activeChapter.objectives && (
+                <div className="flex items-start gap-2 text-sm mt-1">
+                  <span className="font-medium text-muted-foreground shrink-0">目标：</span>
+                  <span>{activeChapter.objectives}</span>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              {activeChapter.outline && (
+                <div className="flex items-start gap-2 text-sm">
+                  <List className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="text-muted-foreground">
+                    <MarkdownRenderer content={activeChapter.outline} />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   ) : null
@@ -628,65 +639,81 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
-        <div className={sidebarOpen ? 'w-80 border-l shrink-0 flex flex-col' : 'w-0 border-l overflow-hidden shrink-0'}>
-          <div className="p-3 border-b flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-1">
-              <Search className="h-4 w-4" />浮动查询
-            </h3>
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex-1 flex flex-col p-3 gap-3 overflow-auto min-h-0">
-            <div className="text-xs text-muted-foreground">
-              临时提问，带学习主题上下文。可选中文后自动带入。
-            </div>
-            <Textarea
-              value={floatQuery}
-              onChange={(e) => setFloatQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFloatQuery() } }}
-              placeholder="输入要查询的概念..."
-              className="min-h-[60px] max-h-[120px] resize-none text-sm"
-              rows={3}
-              disabled={floatLoading}
-            />
-            <Button onClick={handleFloatQuery} disabled={floatLoading || !floatQuery.trim()} size="sm">
-              {floatLoading ? '查询中...' : '查询'}
-            </Button>
-            {floatAnswer && (
-              <div className="flex-1 overflow-auto min-h-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">回答</span>
-                  <Button variant="ghost" size="sm" onClick={handlePinFloat} className="h-6 text-xs">
-                    <Pin className="h-3 w-3 mr-1" />钉入本章
-                  </Button>
-                </div>
-                <div className="bg-muted/50 rounded-md p-3 text-sm">
-                  <MarkdownRenderer content={floatAnswer} />
-                </div>
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              className="border-l shrink-0 flex flex-col overflow-hidden bg-background h-full"
+            >
+              <div className="p-3 border-b flex items-center justify-between shrink-0">
+                <h3 className="text-sm font-semibold flex items-center gap-1 select-none">
+                  <Search className="h-4 w-4" />浮动查询
+                </h3>
+                <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="flex-1 flex flex-col p-3 gap-3 overflow-y-auto min-h-0">
+                <div className="text-xs text-muted-foreground">
+                  临时提问，带学习主题上下文。可选中文后自动带入。
+                </div>
+                <Textarea
+                  value={floatQuery}
+                  onChange={(e) => setFloatQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleFloatQuery() } }}
+                  placeholder="输入要查询的概念..."
+                  className="min-h-[60px] max-h-[120px] resize-none text-sm"
+                  rows={3}
+                  disabled={floatLoading}
+                />
+                <Button onClick={handleFloatQuery} disabled={floatLoading || !floatQuery.trim()} size="sm">
+                  {floatLoading ? '查询中...' : '查询'}
+                </Button>
+                {floatAnswer && (
+                  <div className="flex-1 overflow-auto min-h-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">回答</span>
+                      <Button variant="ghost" size="sm" onClick={handlePinFloat} className="h-6 text-xs">
+                        <Pin className="h-3 w-3 mr-1" />钉入本章
+                      </Button>
+                    </div>
+                    <div className="bg-muted/50 rounded-md p-3 text-sm">
+                      <MarkdownRenderer content={floatAnswer} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {selPopup && (
-        <div
-          data-sel-popup
-          className="fixed z-50 -translate-x-1/2 shadow-lg border rounded-lg bg-popover px-3 py-2"
-          style={{ left: selPopup.x, top: selPopup.y }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground max-w-48 truncate">
-              &ldquo;{selPopup.text.slice(0, 40)}{selPopup.text.length > 40 ? '...' : ''}&rdquo;
-            </span>
-            <Button size="sm" onClick={handleSelQuery} className="h-7 text-xs gap-1">
-              <MessageSquare className="h-3 w-3" />
-              询问
-            </Button>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {selPopup && (
+          <motion.div
+            data-sel-popup
+            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+            className="fixed z-50 -translate-x-1/2 shadow-lg border rounded-lg bg-popover px-3 py-2"
+            style={{ left: selPopup.x, top: selPopup.y }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground max-w-48 truncate select-none">
+                &ldquo;{selPopup.text.slice(0, 40)}{selPopup.text.length > 40 ? '...' : ''}&rdquo;
+              </span>
+              <Button size="sm" onClick={handleSelQuery} className="h-7 text-xs gap-1">
+                <MessageSquare className="h-3 w-3" />
+                询问
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Dialog open={!!editMsg} onOpenChange={() => setEditMsg(null)}>
         <DialogContent>

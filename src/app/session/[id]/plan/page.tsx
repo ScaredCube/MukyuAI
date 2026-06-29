@@ -12,6 +12,7 @@ import { KnowledgePanel } from '@/components/session/KnowledgePanel'
 import { useSettings } from '@/lib/settings-context'
 import { toast } from 'sonner'
 import type { Attachment, Session, Chapter } from '@/lib/types'
+import { motion, AnimatePresence } from 'motion/react'
 
 function estimateTokens(text: string): number {
   if (!text) return 0
@@ -359,115 +360,152 @@ export default function PlanPage({ params }: { params: Promise<{ id: string }> }
           />
         </div>
 
-        {(planResult || hasExistingPlan) && (
-          <div className="w-96 border-l p-4 overflow-auto shrink-0">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">学习计划</h2>
-              {hasExistingPlan && (
-                <Button onClick={handleStartLearning} size="sm">
-                  开始学习
-                </Button>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {session && (
-                <>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">标题</h3>
-                    <p className="text-sm">{planResult?.title || session.title}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">目标</h3>
-                    <p className="text-sm">{planResult?.goal || session.goal}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">摘要</h3>
-                    <p className="text-sm text-muted-foreground">{planResult?.summary || session.summary}</p>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">章节</h3>
-                <div className="space-y-3">
-                  {(planResult?.chapters || chapters).map((ch, i) => (
-                    <div key={ch.id} className="border rounded-md p-3 text-sm">
-                      {editingChapter === ch.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            value={editForm.title}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            placeholder="章节标题"
-                            className="text-sm"
-                          />
-                          <Textarea
-                            value={editForm.objectives}
-                            onChange={(e) => setEditForm({ ...editForm, objectives: e.target.value })}
-                            placeholder="学习目标"
-                            className="text-sm min-h-[60px]"
-                          />
-                          <Textarea
-                            value={editForm.outline}
-                            onChange={(e) => setEditForm({ ...editForm, outline: e.target.value })}
-                            placeholder="大纲（Markdown 列表）"
-                            className="text-sm min-h-[80px]"
-                          />
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleSaveChapter(ch.id)}>保存</Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingChapter(null)}>取消</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="font-medium flex-1">{i + 1}. {ch.title}</span>
-                            <div className="flex gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => handleEditChapter(ch as Chapter)}
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-destructive"
-                                onClick={() => handleDeleteChapter(ch.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          {'description' in ch && ch.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{ch.description}</p>
-                          )}
-                          {ch.objectives && (
-                            <p className="text-xs mt-1"><span className="font-medium">目标：</span>{ch.objectives}</p>
-                          )}
-                          {ch.outline && (
-                            <div className="text-xs mt-1">
-                              <span className="font-medium">大纲：</span>
-                              <pre className="whitespace-pre-wrap font-sans text-muted-foreground mt-0.5">{ch.outline}</pre>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
+        <AnimatePresence>
+          {(planResult || hasExistingPlan) && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 384, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              className="border-l overflow-hidden shrink-0 flex flex-col h-full bg-background"
+            >
+              <div className="p-4 border-b flex items-center justify-between shrink-0 select-none">
+                <h2 className="font-semibold">学习计划</h2>
+                {hasExistingPlan && (
+                  <Button onClick={handleStartLearning} size="sm">
+                    开始学习
+                  </Button>
+                )}
               </div>
 
-              {planResult && !hasExistingPlan && (
-                <Button onClick={handleStartLearning} className="w-full">
-                  开始学习
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 min-h-0">
+                {session && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-3"
+                  >
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">标题</h3>
+                      <p className="text-sm">{planResult?.title || session.title}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">目标</h3>
+                      <p className="text-sm">{planResult?.goal || session.goal}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">摘要</h3>
+                      <p className="text-sm text-muted-foreground">{planResult?.summary || session.summary}</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">章节</h3>
+                  <motion.div
+                    layout
+                    className="space-y-3"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      show: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.05
+                        }
+                      }
+                    }}
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {(planResult?.chapters || chapters).map((ch, i) => (
+                        <motion.div
+                          key={ch.id}
+                          layout
+                          variants={{
+                            hidden: { opacity: 0, y: 12 },
+                            show: { opacity: 1, y: 0 }
+                          }}
+                          className="border rounded-md p-3 text-sm bg-card hover:border-primary/30 transition-colors"
+                        >
+                          {editingChapter === ch.id ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={editForm.title}
+                                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                placeholder="章节标题"
+                                className="text-sm"
+                              />
+                              <Textarea
+                                value={editForm.objectives}
+                                onChange={(e) => setEditForm({ ...editForm, objectives: e.target.value })}
+                                placeholder="学习目标"
+                                className="text-sm min-h-[60px]"
+                              />
+                              <Textarea
+                                value={editForm.outline}
+                                onChange={(e) => setEditForm({ ...editForm, outline: e.target.value })}
+                                placeholder="大纲（Markdown 列表）"
+                                className="text-sm min-h-[80px]"
+                              />
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleSaveChapter(ch.id)}>保存</Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingChapter(null)}>取消</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-medium flex-1">{i + 1}. {ch.title}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => handleEditChapter(ch as Chapter)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    onClick={() => handleDeleteChapter(ch.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {'description' in ch && ch.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{ch.description}</p>
+                              )}
+                              {ch.objectives && (
+                                <p className="text-xs mt-1"><span className="font-medium">目标：</span>{ch.objectives}</p>
+                              )}
+                              {ch.outline && (
+                                <div className="text-xs mt-1">
+                                  <span className="font-medium">大纲：</span>
+                                  <pre className="whitespace-pre-wrap font-sans text-muted-foreground mt-0.5">{ch.outline}</pre>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
+                </div>
+
+                {planResult && !hasExistingPlan && (
+                  <Button onClick={handleStartLearning} className="w-full">
+                    开始学习
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

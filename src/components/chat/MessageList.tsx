@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { formatBytes } from '@/lib/file-utils'
 import type { Attachment } from '@/lib/types'
+import { motion, AnimatePresence } from 'motion/react'
 
 interface Message {
   id: string
@@ -52,147 +53,185 @@ export function MessageList({ messages, streaming, className, onRetry, onEdit, o
   return (
     <div className={cn('flex-1 overflow-y-auto px-4', className)}>
       <div className="max-w-3xl mx-auto py-4 space-y-6">
-        {visibleMessages.map((msg, idx) => {
-          const isLastUser = msg.role === 'user' && idx === lastPairIdx
-          const isUser = msg.role === 'user'
+        <AnimatePresence mode="popLayout">
+          {visibleMessages.map((msg, idx) => {
+            const isLastUser = msg.role === 'user' && idx === lastPairIdx
+            const isUser = msg.role === 'user'
 
-          return (
-            <div key={msg.id} className="flex gap-3 group" data-message-id={msg.id}>
-              <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              )}>
-                {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+            return (
+              <motion.div
+                key={msg.id}
+                layout
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 380,
+                  damping: 28,
+                  layout: { duration: 0.2 }
+                }}
+                className="flex gap-3 group"
+                data-message-id={msg.id}
+              >
+                <div className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                  msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                )}>
+                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">
+                      {msg.role === 'user' ? '你' : 'AI'}
+                    </span>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!isUser && onRetry && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => {
+                            for (let j = idx - 1; j >= 0; j--) {
+                              if (visibleMessages[j].role === 'user') {
+                                onRetry(visibleMessages[j].id)
+                                break
+                              }
+                            }
+                          }}
+                          title="重新生成"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {!isUser && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleCopy(msg.content, msg.id)}
+                          title="复制"
+                        >
+                          {copiedId === msg.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      )}
+                      {isUser && onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn('h-6 w-6', !isLastUser && 'opacity-30 cursor-not-allowed')}
+                          onClick={() => isLastUser && onEdit(msg.id, msg.content)}
+                          title={isLastUser ? '编辑' : '只能编辑最后一对对话'}
+                          disabled={!isLastUser}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {isUser && onDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          onClick={() => onDelete(msg.id)}
+                          title="删除本条及回复"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {msg.attachments.map((att) => (
+                        <motion.div
+                          key={att.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="relative"
+                        >
+                          {att.mimeType.startsWith('image/') ? (
+                            <img
+                              src={att.previewData || `data:${att.mimeType};base64,${att.data}`}
+                              alt={att.name}
+                              className="max-w-60 max-h-40 rounded-lg border cursor-pointer object-cover hover:opacity-90 transition-opacity"
+                              onClick={() => setImagePreview(`data:${att.mimeType};base64,${att.data}`)}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/30 text-sm">
+                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm truncate max-w-[180px]">{att.name}</div>
+                                <div className="text-xs text-muted-foreground">{formatBytes(att.size)}</div>
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  <MarkdownRenderer content={msg.content} />
+                </div>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {(loading || streaming) && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-3"
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-muted">
+                <Bot className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium">
-                    {msg.role === 'user' ? '你' : 'AI'}
-                  </span>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {!isUser && onRetry && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => {
-                          for (let j = idx - 1; j >= 0; j--) {
-                            if (visibleMessages[j].role === 'user') {
-                              onRetry(visibleMessages[j].id)
-                              break
-                            }
-                          }
-                        }}
-                        title="重新生成"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {!isUser && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleCopy(msg.content, msg.id)}
-                        title="复制"
-                      >
-                        {copiedId === msg.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    )}
-                    {isUser && onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn('h-6 w-6', !isLastUser && 'opacity-30 cursor-not-allowed')}
-                        onClick={() => isLastUser && onEdit(msg.id, msg.content)}
-                        title={isLastUser ? '编辑' : '只能编辑最后一对对话'}
-                        disabled={!isLastUser}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {isUser && onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        onClick={() => onDelete(msg.id)}
-                        title="删除本条及回复"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                <div className="text-sm font-medium mb-1">AI</div>
+                {streaming ? (
+                  <div className="relative">
+                    <MarkdownRenderer content={streaming} />
+                    <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1 align-middle" />
                   </div>
-                </div>
-
-                {msg.attachments && msg.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {msg.attachments.map((att) => (
-                      att.mimeType.startsWith('image/') ? (
-                        <div key={att.id} className="relative">
-                          <img
-                            src={att.previewData || `data:${att.mimeType};base64,${att.data}`}
-                            alt={att.name}
-                            className="max-w-60 max-h-40 rounded-lg border cursor-pointer object-cover hover:opacity-90 transition-opacity"
-                            onClick={() => setImagePreview(`data:${att.mimeType};base64,${att.data}`)}
-                          />
-                        </div>
-                      ) : (
-                        <div key={att.id} className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/30 text-sm">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm truncate max-w-[180px]">{att.name}</div>
-                            <div className="text-xs text-muted-foreground">{formatBytes(att.size)}</div>
-                          </div>
-                        </div>
-                      )
-                    ))}
+                ) : (
+                  <div className="flex items-center gap-1.5 h-5">
+                    <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" />
+                    <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.15s' }} />
+                    <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.3s' }} />
                   </div>
                 )}
-
-                <MarkdownRenderer content={msg.content} />
               </div>
-            </div>
-          )
-        })}
-
-        {(loading || streaming) && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-muted">
-              <Bot className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium mb-1">AI</div>
-              {streaming ? (
-                <>
-                  <MarkdownRenderer content={streaming} />
-                  <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
-                </>
-              ) : (
-                <div className="flex items-center gap-1 h-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.15s' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0.3s' }} />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div ref={endRef} />
       </div>
 
-      {imagePreview && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center cursor-pointer"
-          onClick={() => setImagePreview(null)}
-        >
-          <img
-            src={imagePreview}
-            alt="预览"
-            className="max-w-[90vw] max-h-[90vh] rounded-lg object-contain"
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {imagePreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-pointer p-4"
+            onClick={() => setImagePreview(null)}
+          >
+            <motion.img
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              src={imagePreview}
+              alt="预览"
+              className="max-w-[95vw] max-h-[95vh] rounded-lg object-contain shadow-2xl"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
