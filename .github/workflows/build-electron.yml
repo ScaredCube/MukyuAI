@@ -1,0 +1,59 @@
+name: Build and Package Electron App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Package (Windows)
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # 3. Install project dependencies
+      - name: Install Dependencies
+        run: npm ci
+
+      # 4. Run the Electron packaging script
+      # This compiles Next.js standalone and triggers electron-builder
+      - name: Build & Package Application
+        run: npm run electron:build
+        env:
+          NODE_ENV: production
+
+      # 5. Compress win-unpacked directory into a .7z archive
+      # "7z" is pre-installed on the GitHub windows-latest runner
+      - name: Compress Unpacked Folder to 7z
+        shell: powershell
+        run: |
+          # Read version from package.json
+          $pkg = Get-Content package.json | ConvertFrom-Json
+          $version = $pkg.version
+          $archiveName = "dist/MukyuAI-v$version-win-x64.7z"
+          
+          echo "Compressing dist/win-unpacked into $archiveName..."
+          7z a -t7z -mx=9 $archiveName ./dist/win-unpacked/*
+
+      # 6. Upload the build outputs as artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MukyuAI-Windows-Builds
+          path: |
+            dist/*.exe
+            dist/*.7z
+          if-no-files-found: error
+          retention-days: 7
