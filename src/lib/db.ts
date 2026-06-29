@@ -3,7 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import type { Attachment, KnowledgeDoc, KnowledgeChunk } from './types'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+const DATA_DIR = process.env.MUKYU_DATA_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), 'data')
 const DB_PATH = path.join(DATA_DIR, 'mukyu-ai.db')
 
 let db: Database | null = null
@@ -15,8 +15,9 @@ async function getDb(): Promise<Database> {
     fs.mkdirSync(DATA_DIR, { recursive: true })
   }
 
+  const locatePath = process.env.MUKYU_WASM_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), 'node_modules', 'sql.js', 'dist')
   const SQL = await initSqlJs({
-    locateFile: (file: string) => path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
+    locateFile: (file: string) => path.join(locatePath, file),
   })
 
   if (fs.existsSync(DB_PATH)) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, Eye, EyeOff, RefreshCw, Check, X, Edit2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Eye, EyeOff, RefreshCw, Check, X, Edit2, Download, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -154,6 +154,49 @@ export default function SettingsPage() {
         ? { ...settings.externalImageModel, modelId }
         : undefined,
     })
+  }
+
+  const exportSettings = () => {
+    try {
+      const dataStr = JSON.stringify(settings, null, 2)
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+      const exportFileDefaultName = `mukyu-ai-settings-${new Date().toISOString().slice(0, 10)}.json`
+      const linkElement = document.createElement('a')
+      linkElement.setAttribute('href', dataUri)
+      linkElement.setAttribute('download', exportFileDefaultName)
+      linkElement.click()
+      toast.success('设置导出成功')
+    } catch {
+      toast.error('导出失败')
+    }
+  }
+
+  const importSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader()
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    fileReader.onload = (event) => {
+      try {
+        const fileContent = event.target?.result as string
+        const parsed = JSON.parse(fileContent)
+
+        if (typeof parsed !== 'object' || parsed === null) {
+          throw new Error('无效的设置格式')
+        }
+
+        updateSettings(parsed)
+        toast.success('设置导入成功，页面将自动刷新')
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      } catch (err) {
+        toast.error('导入失败：文件格式不正确')
+      }
+    }
+
+    fileReader.readAsText(file)
+    e.target.value = ''
   }
 
   return (
@@ -509,6 +552,32 @@ export default function SettingsPage() {
                   placeholder="默认 70"
                   className="text-sm"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* 备份与恢复配置 */}
+          <Separator />
+          <div className="border rounded-lg p-4 space-y-4">
+            <h3 className="font-semibold">备份与恢复</h3>
+            <p className="text-xs text-muted-foreground">导出当前的供应商、模型和所有设置到本地文件，或从备份文件导入配置。</p>
+            
+            <div className="flex gap-3">
+              <Button variant="outline" size="sm" onClick={exportSettings}>
+                <Download className="h-4 w-4 mr-1.5" />
+                导出设置
+              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importSettings}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-1.5" />
+                  导入设置
+                </Button>
               </div>
             </div>
           </div>

@@ -1,0 +1,27 @@
+{
+  "appId": "com.mukyu.ai",
+  "productName": "MukyuAI",
+  "electronVersion": "42.5.1",
+  "directories": {
+    "output": "../../dist"
+  },
+  "files": [
+    "**/*"
+  ],
+  "win": {
+    "target": [
+      "portable"
+    ]
+  },
+  "mac": {
+    "target": [
+      "dmg"
+    ]
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ]
+  },
+  "asar": false
+}
