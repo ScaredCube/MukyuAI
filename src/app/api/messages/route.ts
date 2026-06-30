@@ -15,12 +15,22 @@ export async function DELETE(req: NextRequest) {
 
     await deleteMessageById(msg.id)
 
-    const nextMsgs = await getMessagesAfter(msg.chapterId || '', msg.timestamp)
+    const chapterId = msg.chapterId || ''
+    const nextMsgs = await getMessagesAfter(chapterId, msg.timestamp)
     if (nextMsgs.length > 0) {
       await deleteMessageById(nextMsgs[0].id)
     }
 
-    return NextResponse.json({ success: true })
+    let newLastTokenCount = 0
+    if (chapterId) {
+      const { assembleChapterContext, estimateMessagesTokens } = await import('@/lib/context')
+      const { updateChapter } = await import('@/lib/db')
+      const ctx = await assembleChapterContext(chapterId)
+      newLastTokenCount = estimateMessagesTokens(ctx.systemMessages) + estimateMessagesTokens(ctx.historyMessages)
+      await updateChapter(chapterId, { lastTokenCount: newLastTokenCount })
+    }
+
+    return NextResponse.json({ success: true, lastTokenCount: newLastTokenCount })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
@@ -70,6 +80,7 @@ export async function PATCH(req: NextRequest) {
       async start(controller) {
         try {
           let promptTokens = 0
+          let completionTokens = 0
           for await (const chunk of streamChat(provider, model, allMessages)) {
             if (chunk.type === 'content' && chunk.content) {
               fullResponse += chunk.content
@@ -78,14 +89,18 @@ export async function PATCH(req: NextRequest) {
               if (chunk.usage.promptTokens > 0) {
                 promptTokens = chunk.usage.promptTokens
               }
+              if (chunk.usage.completionTokens > 0) {
+                completionTokens = chunk.usage.completionTokens
+              }
             }
           }
           await createMessage({ id: assistantMsgId, chapterId, role: 'assistant', content: fullResponse })
-          if (promptTokens > 0) {
+          const totalTokens = promptTokens + completionTokens
+          if (totalTokens > 0) {
             const { updateChapter } = await import('@/lib/db')
-            await updateChapter(chapterId, { lastTokenCount: promptTokens })
+            await updateChapter(chapterId, { lastTokenCount: totalTokens })
           }
-          controller.enqueue(encoder.encode(JSON.stringify({ done: true, messageId: assistantMsgId, lastTokenCount: promptTokens }) + '\n'))
+          controller.enqueue(encoder.encode(JSON.stringify({ done: true, messageId: assistantMsgId, lastTokenCount: totalTokens }) + '\n'))
           controller.close()
         } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : 'Unknown error'

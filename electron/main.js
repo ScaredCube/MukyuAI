@@ -55,7 +55,6 @@ function getFreePort(startPort) {
 async function startNextServer() {
   const dataDir = getDatabaseDirectory();
   process.env.MUKYU_DATA_DIR = dataDir;
-  process.env.MUKYU_WASM_DIR = path.join(app.getAppPath(), 'node_modules', 'sql.js', 'dist');
 
   if (isDev) {
     // In development mode, we expect Next.js dev server to be running on port 3000

@@ -442,7 +442,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   const handleDelete = async (userMsgId: string) => {
     if (!confirm('确定删除这条对话及AI回复？')) return
     try {
-      await fetch('/api/messages', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId: userMsgId }) })
+      const res = await fetch('/api/messages', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId: userMsgId }) })
       const targetMsg = messages.find((m) => m.id === userMsgId)
       if (!targetMsg) return
       const userIdx = messages.findIndex((m) => m.id === userMsgId)
@@ -451,6 +451,14 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         if (messages[i].role === 'assistant') { aiMsgId = messages[i].id; break }
       }
       setMessages((prev) => prev.filter((m) => m.id !== userMsgId && m.id !== aiMsgId))
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.lastTokenCount !== undefined && activeChapter) {
+          setActiveChapter(prev => prev ? { ...prev, lastTokenCount: data.lastTokenCount } : null)
+          setChapters(prev => prev.map(c => c.id === activeChapter.id ? { ...c, lastTokenCount: data.lastTokenCount } : c))
+        }
+      }
     } catch { toast.error('删除失败') }
   }
 

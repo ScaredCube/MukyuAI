@@ -53,7 +53,6 @@ jobs:
         with:
           name: MukyuAI-Windows-Builds
           path: |
-            dist/*.exe
             dist/*.7z
           if-no-files-found: error
           retention-days: 7

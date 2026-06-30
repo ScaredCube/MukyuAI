@@ -37,17 +37,6 @@ try {
     { recursive: true }
   );
 
-  // 4. Copy SQL Wasm file to standalone node_modules to guarantee it is present
-  console.log('Ensuring sql.js WebAssembly is copied...');
-  const wasmSrcDir = path.join(rootDir, 'node_modules', 'sql.js', 'dist');
-  const wasmDstDir = path.join(standaloneDir, 'node_modules', 'sql.js', 'dist');
-  if (fs.existsSync(wasmSrcDir)) {
-    fs.mkdirSync(wasmDstDir, { recursive: true });
-    fs.copyFileSync(
-      path.join(wasmSrcDir, 'sql-wasm.wasm'),
-      path.join(wasmDstDir, 'sql-wasm.wasm')
-    );
-  }
 
   // 5. Modify standalone package.json to declare Electron properties
   console.log('Modifying standalone package.json...');
@@ -58,7 +47,7 @@ try {
     pkg.main = 'electron/main.js';
     pkg.name = 'mukyu-ai';
     pkg.description = rootPkg.description || 'MukyuAI Desktop Client';
-    pkg.author = rootPkg.author || 'MukyuAI';
+    pkg.author = rootPkg.author || 'ScaredCube';
     pkg.version = rootPkg.version || '0.1.0';
     
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));

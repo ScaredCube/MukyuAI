@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       try {
         let promptTokens = 0
+        let completionTokens = 0
         for await (const chunk of streamChat(provider, model, allMessages)) {
           if (chunk.type === 'content' && chunk.content) {
             fullResponse += chunk.content
@@ -102,14 +103,18 @@ export async function POST(req: NextRequest) {
             if (chunk.usage.promptTokens > 0) {
               promptTokens = chunk.usage.promptTokens
             }
+            if (chunk.usage.completionTokens > 0) {
+              completionTokens = chunk.usage.completionTokens
+            }
           }
         }
         await createPlanningMessage({ id: uuidv4(), sessionId, role: 'assistant', content: fullResponse })
-        if (promptTokens > 0) {
+        const totalTokens = promptTokens + completionTokens
+        if (totalTokens > 0) {
           const { updateSession } = await import('@/lib/db')
-          await updateSession(sessionId, { lastPlanningTokenCount: promptTokens })
+          await updateSession(sessionId, { lastPlanningTokenCount: totalTokens })
         }
-        controller.enqueue(encoder.encode(JSON.stringify({ done: true }) + '\n'))
+        controller.enqueue(encoder.encode(JSON.stringify({ done: true, lastPlanningTokenCount: totalTokens }) + '\n'))
         controller.close()
       } catch (e: unknown) {
         const errMsg = e instanceof Error ? e.message : 'Unknown error'
